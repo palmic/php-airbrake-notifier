@@ -254,8 +254,8 @@ class Services_Airbrake
 
 		$node = $parent->addChild($key);
 		foreach ($source as $key => $val) {
-			$var_node = $node->addChild('var', $val);
-			$var_node->addAttribute('key', $key);
+			$var_node = $node->addChild('var', (string) $val);
+			$var_node->addAttribute('key', (string) $key);
 		}
 	}
 
@@ -275,9 +275,15 @@ class Services_Airbrake
 			if (isset($entry['class']) && $entry['class'] == 'Services_Airbrake') continue;
 
 			$line_node = $backtrace->addChild('line');
-			$line_node->addAttribute('file', $entry['file']);
-			$line_node->addAttribute('number', $entry['line']);
-			$line_node->addAttribute('method', $entry['function']);
+			if (isset($entry['file'])) {
+				$line_node->addAttribute('file', $entry['file']);
+			}
+			if (isset($entry['line'])) {
+				$line_node->addAttribute('number', $entry['line']);
+			}
+			if (isset($entry['function'])) {
+				$line_node->addAttribute('method', $entry['function']);
+			}
 		}
 	}
 

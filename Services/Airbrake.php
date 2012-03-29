@@ -224,7 +224,7 @@ class Services_Airbrake
 		$this->addXmlBacktrace($error);
 
 		$request = $doc->addChild('request');
-		$request->addChild('url', $this->request_uri());
+		$request->addChild('url', htmlspecialchars($this->request_uri()));
 		$request->addChild('component', $this->component());
 		$request->addChild('action', $this->action());
 
@@ -254,7 +254,7 @@ class Services_Airbrake
 
 		$node = $parent->addChild($key);
 		foreach ($source as $key => $val) {
-			$var_node = $node->addChild('var', (string) $val);
+			$var_node = $node->addChild('var', htmlspecialchars((string) $val, ENT_NOQUOTES));
 			$var_node->addAttribute('key', (string) $key);
 		}
 	}

@@ -123,6 +123,16 @@ class Services_Airbrake
 	{
 		if ($code == E_STRICT && $this->reportESTRICT === false) return;
 
+		// Fuckin' mpdf workaround
+		if (preg_match('/mpdf\.php$/', $file)) {
+			switch (true) {
+				case preg_match('/^include(.+)\/ttfontdata\//', $message):
+				case preg_match('/^Undefined index:/', $message):
+						return;
+					break;
+			}
+		}
+
 		$this->notify($code, $message, $file, $line, debug_backtrace());
 	}
 

@@ -123,16 +123,6 @@ class Services_Airbrake
 	{
 		if ($code == E_STRICT && $this->reportESTRICT === false) return;
 
-		// Fuckin' mpdf workaround
-		if (preg_match('/mpdf\.php$/', $file)) {
-			switch (true) {
-				case preg_match('/^include(.+)\/ttfontdata\//', $message):
-				case preg_match('/^Undefined index:/', $message):
-						return;
-					break;
-			}
-		}
-
 		$this->notify($code, $message, $file, $line, debug_backtrace());
 	}
 
@@ -192,6 +182,23 @@ class Services_Airbrake
 	 */
 	function notify($error_class, $message, $file, $line, $trace, $component=NULL, $action = '')
 	{
+		// workarounds
+		if (preg_match('/mpdf\.php$/', $file)) {
+			switch (true) {
+				case preg_match('/^include(.+)\/ttfontdata\//', $message):
+				case preg_match('/^Undefined index:/', $message):
+						return;
+					break;
+			}
+		}
+		if (preg_match('/lib\/vendor\/symfony\/command\/sfCommandApplication\.class\.php$/', $file)) {
+			switch (true) {
+				case 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush' == $message:
+						return;
+					break;
+			}
+		}
+
 		$this->setParamsForNotify($error_class, $message, $file, $line, $trace, $component, $action);
 
 		$url = "http://airbrakeapp.com/notifier_api/v2/notices";
@@ -209,6 +216,7 @@ class Services_Airbrake
 			// we can't really throw our runtime exception since we're likely in
 			// an exception handler. Punt on this for now and come back to it.
 		}
+
 	}
 
 	/**
@@ -219,6 +227,7 @@ class Services_Airbrake
 	 **/
 	function buildXmlNotice()
 	{
+
 		$doc = new SimpleXMLElement('<notice />');
 		$doc->addAttribute('version', self::NOTIFIER_API_VERSION);
 		$doc->addChild('api-key', $this->apiKey);

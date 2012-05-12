@@ -88,7 +88,7 @@ class Services_Airbrake
 	 * @return void
 	 * @author Rich Cavanaugh
 	 */
-	function __construct($apiKey, $environment='production', $client='pear', $reportESTRICT=false, $timeout=2)
+	function __construct($apiKey, $environment='production', $client='pear', $reportESTRICT=FALSE, $timeout=2)
 	{
 		$this->apiKey = $apiKey;
 		$this->environment = $environment;
@@ -121,7 +121,9 @@ class Services_Airbrake
 	 */
 	public function errorHandler($code, $message, $file, $line)
 	{
-		if ($code == E_STRICT && $this->reportESTRICT === false) return;
+		if ($code == E_STRICT && $this->reportESTRICT === FALSE) {
+			return;
+		}
 
 		$this->notify($code, $message, $file, $line, debug_backtrace());
 	}
@@ -147,8 +149,10 @@ class Services_Airbrake
 	public function fatalErrorHandler()
 	{
 		$error = error_get_last();
-		if($error)
-			$this->notify($error['type'], $error['message'], $error['file'], $error['line'], debug_backtrace());
+		if ($error)
+				{
+					$this->notify($error['type'], $error['message'], $error['file'], $error['line'], debug_backtrace());
+				}
 	}
 
 	/**
@@ -184,7 +188,7 @@ class Services_Airbrake
 	{
 		// workarounds
 		if (preg_match('/mpdf\.php$/', $file)) {
-			switch (true) {
+			switch (TRUE) {
 				case preg_match('/^include(.+)\/ttfontdata\//', $message):
 				case preg_match('/^Undefined index:/', $message):
 						return;
@@ -192,7 +196,7 @@ class Services_Airbrake
 			}
 		}
 		if (preg_match('/lib\/vendor\/symfony\/command\/sfCommandApplication\.class\.php$/', $file)) {
-			switch (true) {
+			switch (TRUE) {
 				case 'ob_end_flush(): failed to delete and flush buffer. No buffer to delete or flush' == $message:
 						return;
 					break;
@@ -210,7 +214,9 @@ class Services_Airbrake
 
 		try {
 			$status = call_user_func_array(array($this, $this->client . 'Request'), array($url, $headers, $body));
-			if ($status != 200) $this->handleErrorResponse($status);
+			if ($status != 200) {
+				$this->handleErrorResponse($status);
+			}
 		} catch (RuntimeException $e) {
 			// TODO do something reasonable with the runtime exception.
 			// we can't really throw our runtime exception since we're likely in
@@ -247,11 +253,17 @@ class Services_Airbrake
 		$request->addChild('component', $this->component());
 		$request->addChild('action', $this->action());
 
-		if (isset($_REQUEST)) $this->addXmlVars($request, 'params', $this->params());
-		if (isset($_SESSION)) $this->addXmlVars($request, 'session', $this->session());
+		if (isset($_REQUEST)) {
+			$this->addXmlVars($request, 'params', $this->params());
+		}
+		if (isset($_SESSION)) {
+			$this->addXmlVars($request, 'session', $this->session());
+		}
 		if (isset($_SERVER)) {
-			if(isset($_SERVER['argv']))
-				unset($_SERVER['argv']);
+			if (isset($_SERVER['argv']))
+					{
+						unset($_SERVER['argv']);
+					}
 			$this->addXmlVars($request, 'cgi-data', $this->cgi_data());
 		}
 
@@ -269,11 +281,13 @@ class Services_Airbrake
 	 **/
 	function addXmlVars($parent, $key, $source)
 	{
-		if (empty($source)) return;
+		if (empty($source)) {
+			return;
+		}
 
 		$node = $parent->addChild($key);
 		foreach ($source as $key => $val) {
-			$var_node = $node->addChild('var', htmlspecialchars((string) $val, ENT_NOQUOTES));
+			$var_node = $node->addChild('var', htmlspecialchars((string) $this->deepImplode($val), ENT_NOQUOTES));
 			$var_node->addAttribute('key', (string) $key);
 		}
 	}
@@ -291,7 +305,9 @@ class Services_Airbrake
 		$line_node->addAttribute('number', $this->line);
 
 		foreach ($this->trace as $entry) {
-			if (isset($entry['class']) && $entry['class'] == 'Services_Airbrake') continue;
+			if (isset($entry['class']) && $entry['class'] == 'Services_Airbrake') {
+				continue;
+			}
 
 			$line_node = $backtrace->addChild('line');
 			if (isset($entry['file'])) {
@@ -441,8 +457,12 @@ class Services_Airbrake
 	 **/
 	public function pearRequest($url, $headers, $body)
 	{
-		if (!class_exists('HTTP_Request2')) require_once('HTTP/Request2.php');
-		if (!class_exists('HTTP_Request2_Adapter_Socket')) require_once 'HTTP/Request2/Adapter/Socket.php';
+		if (!class_exists('HTTP_Request2')) {
+			require_once('HTTP/Request2.php');
+		}
+		if (!class_exists('HTTP_Request2_Adapter_Socket')) {
+			require_once 'HTTP/Request2/Adapter/Socket.php';
+		}
 
 		$adapter = new HTTP_Request2_Adapter_Socket;
 		$req = new HTTP_Request2($url, HTTP_Request2::METHOD_POST);
@@ -519,5 +539,20 @@ class Services_Airbrake
 		$response = $client->request('POST');
 
 		return $response->getStatus();
+	}
+
+	/**
+	 * @param mixed $array
+	 * @param string $glue
+	 * @return string
+	 */
+	private function deepImplode($array, $glue = ', ') {
+		if (!is_array($array)) {
+			return $array;
+		}
+		foreach ($array as $key => $item) {
+			$array[$key] = $this->deepImplode($item, $glue);
+		}
+		return implode($glue, $array);
 	}
 }

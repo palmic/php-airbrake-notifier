@@ -16,7 +16,8 @@ class Services_Airbrake
 	const NOTIFIER_NAME = 'php-airbrake-notifier';
 	const NOTIFIER_VERSION = '0.2.2';
 	const NOTIFIER_URL = 'http://github.com/geoloqi/php-airbrake-notifier';
-	const NOTIFIER_API_VERSION = '2.0';
+	const NOTIFIER_API_VERSION = '2.2';
+	const XSD = 'http://airbrake.io/airbrake_2_2.xsd';
 
 	protected $error_class;
 	protected $message;
@@ -213,6 +214,7 @@ class Services_Airbrake
 		$body = $this->buildXmlNotice();
 
 		try {
+			$this->checkXMLBodyValid($body);
 			$status = call_user_func_array(array($this, $this->client . 'Request'), array($url, $headers, $body));
 			if ($status != 200) {
 				$this->handleErrorResponse($status);
@@ -310,15 +312,9 @@ class Services_Airbrake
 			}
 
 			$line_node = $backtrace->addChild('line');
-			if (isset($entry['file'])) {
-				$line_node->addAttribute('file', $entry['file']);
-			}
-			if (isset($entry['line'])) {
-				$line_node->addAttribute('number', $entry['line']);
-			}
-			if (isset($entry['function'])) {
-				$line_node->addAttribute('method', $entry['function']);
-			}
+			$line_node->addAttribute('file', isset($entry['file']) ? $entry['file'] : '');
+			$line_node->addAttribute('number', isset($entry['line']) ? $entry['line'] : '');
+			$line_node->addAttribute('method', isset($entry['function']) ? $entry['function'] : '');
 		}
 	}
 
@@ -554,5 +550,18 @@ class Services_Airbrake
 			$array[$key] = $this->deepImplode($item, $glue);
 		}
 		return implode($glue, $array);
+	}
+
+	/**
+	 * @param string $body
+	 *
+	 * @throws RuntimeException
+	 */
+	private function checkXMLBodyValid($body) {
+		$dom = new DOMDocument();
+		$dom->loadXML($body);
+		if (!$dom->schemaValidate(self::XSD)) {
+			throw new RuntimeException('generated error notice XML for Airbrake does not pass XSD validation!');
+		}
 	}
 }

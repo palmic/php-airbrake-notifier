@@ -560,8 +560,8 @@ class Services_Airbrake
 	private function checkXMLBodyValid($body) {
 		$dom = new DOMDocument();
 		$dom->loadXML($body);
-		if (!$dom->schemaValidate(self::XSD)) {
-			throw new RuntimeException('generated error notice XML for Airbrake does not pass XSD validation!');
+		if (!@$dom->schemaValidate(self::XSD)) {
+			throw new RuntimeException(sprintf('generated error notice XML for Airbrake does not pass XSD validation! Original body: %s', $body));
 		}
 	}
 }
